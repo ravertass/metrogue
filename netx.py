@@ -131,6 +131,7 @@ def add_node(graph, value, mark=None):
 
 def pydot_graph(nx_graph):
     dot_graph = graphviz.Digraph()
+    dot_graph.graph_attr['rankdir'] = 'LR'
 
     for node, node_attrs in nx_graph.nodes(data=True):
         dot_graph.node(str(node), node_attrs['value'])
