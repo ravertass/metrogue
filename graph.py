@@ -1,9 +1,13 @@
 #!/usr/bin/python2
 
+import os, errno
 import random
 import networkx as nx
 import networkx.algorithms.isomorphism as iso
 import graphviz
+import itertools
+
+RULE_DIR = 'rules'
 
 class RandomGrammar(object):
     def __init__(self, rules_with_weights):
@@ -41,9 +45,13 @@ class RandomGrammar(object):
         return None
 
 class Rule(object):
-    def __init__(self, lhs, rhs):
+    def __init__(self, name, lhs, rhs, render=True):
+        self.name = name
         self._lhs = lhs
         self._rhs = rhs
+
+        if render:
+            self._render_rule()
 
     def is_applicable(self, graph):
         return self._matcher(graph).subgraph_is_isomorphic()
@@ -115,6 +123,30 @@ class Rule(object):
                 value = self._rhs[r_node][succ].get('value')
                 graph.add_edge(new_node, new_succ, value=value)
 
+    def _render_rule(self):
+        if not os.path.exists(RULE_DIR):
+            create_dir(RULE_DIR)
+
+        lhs_dot = pydot_graph(self._lhs, unique=True)
+
+        rhs_dot = pydot_graph(self._rhs, unique=True)
+
+        dot = graphviz.Digraph()
+        dot.subgraph(lhs_dot)
+        dot.subgraph(rhs_dot)
+        dot.graph_attr['label'] = self.name
+
+        file_name = self.name.lower().replace(' ', '_')
+        dot.render(os.path.join(RULE_DIR, file_name), cleanup=True)
+
+def create_dir(directory):
+    try:
+        os.makedirs(directory)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+
 
 def do_nodes_match(node_attrs_a, node_attrs_b):
     return node_attrs_a.get('value') == node_attrs_b.get('value') or \
@@ -134,19 +166,25 @@ def add_node(graph, value, mark=None):
 
     return n
 
-def pydot_graph(nx_graph):
+i = itertools.count(0)
+def pydot_graph(nx_graph, unique=False):
+    suffix = str(i.next()) if unique else ''
+
     dot_graph = graphviz.Digraph()
     dot_graph.graph_attr['rankdir'] = 'LR'
+    dot_graph.node_attr['fontname'] = 'Monospace'
 
     for node, node_attrs in nx_graph.nodes(data=True):
-        dot_graph.node(str(node), node_attrs['value'])
+        mark = node_attrs.get('mark')
+        mark_prefix = str(mark) + ' : ' if mark is not None else ''
+        dot_graph.node(str(node) + suffix, mark_prefix + str(node_attrs.get('value')))
 
     for node, succ, value in nx_graph.edges(data='value'):
         if value is not None and value == 'u':
-            arrowhead = 'diamond'
+            arrowhead = 'odiamond'
         else:
             arrowhead = 'normal'
-        dot_graph.edge(str(node), str(succ), arrowhead=arrowhead)
+        dot_graph.edge(str(node) + suffix, str(succ) + suffix, arrowhead=arrowhead)
 
     return dot_graph
 
