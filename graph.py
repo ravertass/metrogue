@@ -1,91 +1,155 @@
 #!/usr/bin/python2
 
-class Graph(object):
-    def  __init__(self):
-        self.nodes = []
-        self.edges = {}
+import random
+import networkx as nx
+import networkx.algorithms.isomorphism as iso
+import graphviz
 
-    def node(self, value):
-        node = Node(value)
-        self.nodes.append(node)
-        self.edges[node] = []
+class RandomGrammar(object):
+    def __init__(self, rules_with_weights):
+        self._rules_with_weights = rules_with_weights
 
-        return node
-
-    def edge(self, node_a, node_b):
-        self.edges[node_a].append(node_b)
-
-    def contains_pattern(self, pattern):
-        node_combos = [(self_node, pattern_node)
-                       for self_node in self.nodes
-                       for pattern_node in pattern.nodes]
-
-        for self_node, pattern_node in node_combos:
-            if self.has_pattern(self_node, pattern_node, pattern):
+    def is_applicable(self, graph):
+        for rule, _ in self._rules_with_weights:
+            if rule.is_applicable(graph):
                 return True
-
         return False
 
-    def has_pattern(self, node, pattern_node, pattern, processed_pattern_nodes = None):
-        if processed_pattern_nodes == None:
-            processed_pattern_nodes = []
+    def expand(self, graph):
+        applicable_rules_with_weights = self._applicable_rules(graph)
+        rule = self._choose_rule(applicable_rules_with_weights)
+        if rule is not None:
+            rule.apply(graph)
 
-        self_edges = self.edges[node]
-        pattern_edges = pattern.edges[pattern_node]
+    def _applicable_rules(self, graph):
+        rules = []
+        for rule, weight in self._rules_with_weights:
+            if rule.is_applicable(graph):
+                rules.append((rule, weight))
+        return rules
 
-        if node.matches(pattern_node):
-            processed_pattern_nodes.append(pattern_node)
-            if not pattern_edges or len(pattern.nodes) == len(processed_pattern_nodes):
-                return True
+    def _choose_rule(self, rules_with_weights):
+        total = sum(weight for _, weight in rules_with_weights)
+        r = random.uniform(0, total)
 
-            edge_combos = [(self_edge, pattern_edge)
-                           for self_edge in self_edges
-                           for pattern_edge in pattern_edges]
+        weight_acc = 0
+        for rule, weight in rules_with_weights:
+            if weight_acc + weight >= r:
+                return rule
+            weight_acc += weight
 
-            for self_edge, pattern_edge in edge_combos:
-                if self.has_pattern(self_edge, pattern_edge, pattern,
-                                    list(processed_pattern_nodes)):
-                    return True
+        return None
 
-        return False
+class Rule(object):
+    def __init__(self, lhs, rhs):
+        self._lhs = lhs
+        self._rhs = rhs
 
-    def replace_pattern(self, pattern, replacement):
-        pass
+    def is_applicable(self, graph):
+        return self._matcher(graph).subgraph_is_isomorphic()
 
-class Node(object):
-    def __init__(self, value):
-        self.value = value
+    def _matcher(self, graph):
+        return iso.DiGraphMatcher(graph,
+                                  self._lhs,
+                                  node_match=do_nodes_match,
+                                  edge_match=do_edges_match)
 
-    def matches(self, other):
-        return self.value == other.value or "*" in (self.value, other.value)
+    def apply(self, graph):
+        if not self.is_applicable(graph):
+            raise RuntimeError("Should not try to apply inapplicable rule!")
+        marked_nodes = self._marked_nodes(graph)
 
-    def __hash__(self):
-        return hash(id(self))
+        self._remove_edges(graph, marked_nodes.values())
 
-    def __eq__(self, other):
-        return self is other
+        r_marks = []
+        new_nodes = {}
+        # Change values of existing nodes with equiv marks, and add nodes with new marks
+        for r_node, r_node_attrs in self._rhs.nodes(data=True):
+            mark = r_node_attrs['mark']
+            r_marks.append(mark)
+            if mark in marked_nodes.keys():
+                # Node in RHS has equiv in LHS
+                node = marked_nodes[mark]
+                new_value = r_node_attrs['value']
+                if new_value != '*':
+                    graph.node[node]['value'] = new_value
+                new_nodes[mark] = node
+            else:
+                # Node in RHS has no equiv in LHS
+                node = add_node(graph, r_node_attrs['value'])
+                new_nodes[mark] = node
 
-    def __ne__(self, other):
-        return not (self == other)
+        # Remove nodes with marks not in RHS
+        for mark, node in marked_nodes.iteritems():
+            if mark not in r_marks:
+                graph.remove_node(node)
 
-def main():
-    graph = Graph()
-    node0 = graph.node("A")
-    node1 = graph.node("B")
-    node2 = graph.node("C")
-    node3 = graph.node("d")
-    graph.edge(node0, node1)
-    graph.edge(node1, node2)
-    graph.edge(node1, node3)
+        self._add_edges(graph, new_nodes)
 
-    pattern = Graph()
-    pattern_node0 = pattern.node("B")
-    pattern_node1 = pattern.node("C")
-    pattern_node2 = pattern.node("D")
-    pattern.edge(pattern_node0, pattern_node1)
-    pattern.edge(pattern_node0, pattern_node2)
+    def _marked_nodes(self, graph):
+        marked_nodes = {}
+        matcher = self._matcher(graph)
+        for match in matcher.subgraph_isomorphisms_iter():
+            for g_node, l_node in match.iteritems():
+                l_node_attrs = self._lhs.node[l_node]
+                marked_nodes[l_node_attrs['mark']] = g_node
 
-    print graph.contains_pattern(pattern)
+        return marked_nodes
 
-if __name__ == "__main__":
-    main()
+    def _remove_edges(self, graph, nodes):
+        for node in nodes:
+            for succ in graph.successors(node):
+                if succ in nodes:
+                    graph.remove_edge(node, succ)
+            for pred in graph.predecessors(node):
+                if pred in nodes:
+                    graph.remove_edge(pred, node)
+
+    def _add_edges(self, graph, new_nodes):
+        for r_node, r_node_attrs in self._rhs.nodes(data=True):
+            mark = r_node_attrs['mark']
+            new_node = new_nodes[mark]
+            for succ in self._rhs.successors(r_node):
+                succ_mark = self._rhs.node[succ]['mark']
+                new_succ = new_nodes[succ_mark]
+                value = self._rhs[r_node][succ].get('value')
+                graph.add_edge(new_node, new_succ, value=value)
+
+
+def do_nodes_match(node_attrs_a, node_attrs_b):
+    return node_attrs_a.get('value') == node_attrs_b.get('value') or \
+           '*' in (node_attrs_a.get('value'), node_attrs_b.get('value'))
+
+def do_edges_match(edge_attrs_a, edge_attrs_b):
+    return edge_attrs_a.get('value') == edge_attrs_b.get('value')
+
+def add_node(graph, value, mark=None):
+    n = 0
+    while n in graph.nodes():
+        n += 1
+    if mark is None:
+        graph.add_node(n, value=value)
+    else:
+        graph.add_node(n, value=value, mark=mark)
+
+    return n
+
+def pydot_graph(nx_graph):
+    dot_graph = graphviz.Digraph()
+    dot_graph.graph_attr['rankdir'] = 'LR'
+
+    for node, node_attrs in nx_graph.nodes(data=True):
+        dot_graph.node(str(node), node_attrs['value'])
+
+    for node, succ, value in nx_graph.edges(data='value'):
+        if value is not None and value == 'u':
+            arrowhead = 'diamond'
+        else:
+            arrowhead = 'normal'
+        dot_graph.edge(str(node), str(succ), arrowhead=arrowhead)
+
+    return dot_graph
+
+def render(nx_graph, file_name):
+    pydot_graph(nx_graph).render(file_name, cleanup=True)
+
