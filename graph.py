@@ -98,6 +98,9 @@ class Rule(object):
 
         self._add_edges(graph, new_nodes)
 
+        for node in new_nodes.values():
+            graph.node[node]['preds'] = len(graph.predecessors(node))
+
         if self._should_render:
             self._render_step(graph, new_nodes.values())
 
@@ -168,8 +171,10 @@ def create_dir(directory):
 
 
 def do_nodes_match(node_attrs_a, node_attrs_b):
-    return node_attrs_a.get('value') == node_attrs_b.get('value') or \
-           '*' in (node_attrs_a.get('value'), node_attrs_b.get('value'))
+    return (node_attrs_a.get('value') == node_attrs_b.get('value') or \
+           '*' in (node_attrs_a.get('value'), node_attrs_b.get('value'))) and \
+           (node_attrs_a.get('preds') == node_attrs_b.get('preds') \
+            if None not in (node_attrs_a.get('preds'), node_attrs_b.get('preds')) else True)
 
 def do_edges_match(edge_attrs_a, edge_attrs_b):
     return edge_attrs_a.get('value') == edge_attrs_b.get('value')

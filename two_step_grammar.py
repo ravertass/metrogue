@@ -21,7 +21,7 @@ def random_set(g):
     start_rule().apply(g)
 
     grow_rule = grow()
-    for _ in range(0,5):
+    for _ in range(0,11):
         grow_rule.apply(g)
 
     lock_goal().apply(g)
@@ -122,21 +122,17 @@ def locks_and_keys(g):
     lock_door_rule = lock_door()
     while lock_door_rule.is_applicable(g):
         lock_door_rule.apply(g)
-    #render_pdf(g)
 
     remove_unnecessary_locks_rule = remove_unnecessary_locks()
     while remove_unnecessary_locks_rule.is_applicable(g):
         remove_unnecessary_locks_rule.apply(g)
-    #render_pdf(g)
 
     move_unlocks_grammar_23_grammar = move_unlocks_grammar_23()
     while move_unlocks_grammar_23_grammar.is_applicable(g):
         move_unlocks_grammar_23_grammar.expand(g)
-    #render_pdf(g)
 
     while remove_unnecessary_locks_rule.is_applicable(g):
         remove_unnecessary_locks_rule.apply(g)
-    #render_pdf(g)
 
 #    while move_unlocks_grammar_01().is_applicable(g):
 #        move_unlocks_grammar_01().expand(g)
@@ -248,7 +244,7 @@ def lock_door():
     lhs = nx.DiGraph()
     lhs.add_node(0, value='*', mark=0)
     lhs.add_node(1, value='*', mark=1)
-    lhs.add_node(2, value='l', mark=2)
+    lhs.add_node(2, value='l', mark=2, preds=1)
     lhs.add_edge(0, 1)
     lhs.add_edge(1, 2)
 
@@ -294,9 +290,28 @@ def move_unlocks_2b():
     rhs.add_node(2, value='l', mark=2)
     rhs.add_edge(0, 1)
     rhs.add_edge(0, 2, value='u')
-    lhs.add_edge(1, 2)
+    rhs.add_edge(1, 2)
 
     return Rule('Move unlocks 2b', lhs, rhs)
+
+def move_unlocks_2c():
+    lhs = nx.DiGraph()
+    lhs.add_node(0, value='*', mark=0)
+    lhs.add_node(1, value='t', mark=1)
+    lhs.add_node(2, value='l', mark=2)
+    lhs.add_edge(0, 1)
+    lhs.add_edge(0, 2)
+    lhs.add_edge(1, 2, value='u')
+
+    rhs = nx.DiGraph()
+    rhs.add_node(0, value='*', mark=0)
+    rhs.add_node(1, value='t', mark=1)
+    rhs.add_node(2, value='l', mark=2)
+    rhs.add_edge(0, 1)
+    rhs.add_edge(0, 2, value='u')
+    rhs.add_edge(1, 2)
+
+    return Rule('Move unlocks 2c', lhs, rhs)
 
 def move_unlocks_3():
     lhs = nx.DiGraph()
@@ -315,25 +330,7 @@ def move_unlocks_3():
 
     return Rule('Move unlocks 3', lhs, rhs)
 
-def move_unlocks_3b():
-    lhs = nx.DiGraph()
-    lhs.add_node(0, value='*', mark=0)
-    lhs.add_node(1, value='l', mark=1)
-    lhs.add_node(2, value='l', mark=2)
-    lhs.add_edge(0, 1, value='u')
-    lhs.add_edge(0, 2, value='u')
-    lhs.add_edge(1, 2, value='u')
-
-    rhs = nx.DiGraph()
-    rhs.add_node(0, value='*', mark=0)
-    rhs.add_node(1, value='l', mark=1)
-    rhs.add_node(2, value='l', mark=2)
-    rhs.add_edge(0, 1, value='u')
-    rhs.add_edge(0, 2, value='u')
-
-    return Rule('Move unlocks 3b', lhs, rhs)
-
-def move_unlocks_3c():
+def move_unlocks_3aa():
     lhs = nx.DiGraph()
     lhs.add_node(0, value='*', mark=0)
     lhs.add_node(1, value='l', mark=1)
@@ -353,9 +350,9 @@ def move_unlocks_3c():
     rhs.add_edge(1, 3)
     rhs.add_edge(2, 3)
 
-    return Rule('Move unlocks 3c', lhs, rhs)
+    return Rule('Move unlocks 3aa', lhs, rhs)
 
-def move_unlocks_3d():
+def move_unlocks_3ab():
     lhs = nx.DiGraph()
     lhs.add_node(0, value='*', mark=0)
     lhs.add_node(1, value='l', mark=1)
@@ -378,16 +375,164 @@ def move_unlocks_3d():
     rhs.add_edge(1, 4)
     rhs.add_edge(2, 3)
 
-    return Rule('Move unlocks 3d', lhs, rhs)
+    return Rule('Move unlocks 3ab', lhs, rhs)
+
+def move_unlocks_3b():
+    lhs = nx.DiGraph()
+    lhs.add_node(0, value='*', mark=0)
+    lhs.add_node(1, value='l', mark=1)
+    lhs.add_node(2, value='l', mark=2)
+    lhs.add_edge(0, 1, value='u')
+    lhs.add_edge(0, 2, value='u')
+    lhs.add_edge(1, 2, value='u')
+
+    rhs = nx.DiGraph()
+    rhs.add_node(0, value='*', mark=0)
+    rhs.add_node(1, value='l', mark=1)
+    rhs.add_node(2, value='l', mark=2)
+    rhs.add_edge(0, 1, value='u')
+    rhs.add_edge(0, 2, value='u')
+
+    return Rule('Move unlocks 3b', lhs, rhs)
+
+def move_unlocks_3ba():
+    lhs = nx.DiGraph()
+    lhs.add_node(0, value='*', mark=0)
+    lhs.add_node(1, value='l', mark=1)
+    lhs.add_node(2, value='l', mark=2)
+    lhs.add_node(3, value='*', mark=3)
+    lhs.add_edge(0, 1, value='u')
+    lhs.add_edge(0, 2, value='u')
+    lhs.add_edge(1, 2, value='u')
+    lhs.add_edge(2, 3)
+
+    rhs = nx.DiGraph()
+    rhs.add_node(0, value='*', mark=0)
+    rhs.add_node(1, value='l', mark=1)
+    rhs.add_node(2, value='l', mark=2)
+    rhs.add_node(3, value='*', mark=3)
+    rhs.add_edge(0, 1, value='u')
+    rhs.add_edge(0, 2, value='u')
+    rhs.add_edge(2, 3)
+    rhs.add_edge(1, 3)
+
+    return Rule('Move unlocks 3ba', lhs, rhs)
+
+def move_unlocks_3bb():
+    lhs = nx.DiGraph()
+    lhs.add_node(0, value='*', mark=0)
+    lhs.add_node(1, value='l', mark=1)
+    lhs.add_node(2, value='l', mark=2)
+    lhs.add_node(3, value='*', mark=3)
+    lhs.add_node(4, value='*', mark=4)
+    lhs.add_edge(0, 1, value='u')
+    lhs.add_edge(0, 2, value='u')
+    lhs.add_edge(1, 2, value='u')
+    lhs.add_edge(2, 3)
+    lhs.add_edge(1, 4)
+
+    rhs = nx.DiGraph()
+    rhs.add_node(0, value='*', mark=0)
+    rhs.add_node(1, value='l', mark=1)
+    rhs.add_node(2, value='l', mark=2)
+    rhs.add_node(3, value='*', mark=3)
+    rhs.add_node(4, value='*', mark=4)
+    rhs.add_edge(0, 1, value='u')
+    rhs.add_edge(0, 2, value='u')
+    rhs.add_edge(2, 3)
+    rhs.add_edge(1, 4)
+
+    return Rule('Move unlocks 3bb', lhs, rhs)
+
+def move_unlocks_3c():
+    lhs = nx.DiGraph()
+    lhs.add_node(0, value='*', mark=0)
+    lhs.add_node(1, value='l', mark=1)
+    lhs.add_node(2, value='l', mark=2)
+    lhs.add_edge(0, 1, value='u')
+    lhs.add_edge(0, 2)
+    lhs.add_edge(1, 2, value='u')
+
+    rhs = nx.DiGraph()
+    rhs.add_node(0, value='*', mark=0)
+    rhs.add_node(1, value='l', mark=1)
+    rhs.add_node(2, value='l', mark=2)
+    rhs.add_edge(0, 1, value='u')
+    rhs.add_edge(0, 2, value='u')
+
+    return Rule('Move unlocks 3c', lhs, rhs)
+
+def move_unlocks_3ca():
+    lhs = nx.DiGraph()
+    lhs.add_node(5, value='*', mark=5)
+    lhs.add_node(0, value='*', mark=0)
+    lhs.add_node(1, value='l', mark=1)
+    lhs.add_node(2, value='l', mark=2)
+    lhs.add_node(3, value='*', mark=3)
+    lhs.add_edge(5, 0)
+    lhs.add_edge(0, 1, value='u')
+    lhs.add_edge(0, 2)
+    lhs.add_edge(1, 2, value='u')
+    lhs.add_edge(2, 3)
+
+    rhs = nx.DiGraph()
+    rhs.add_node(5, value='*', mark=5)
+    rhs.add_node(0, value='*', mark=0)
+    rhs.add_node(1, value='l', mark=1)
+    rhs.add_node(2, value='l', mark=2)
+    rhs.add_node(3, value='*', mark=3)
+    rhs.add_edge(5, 0)
+    rhs.add_edge(5, 2)
+    rhs.add_edge(0, 1, value='u')
+    rhs.add_edge(0, 2, value='u')
+    rhs.add_edge(2, 3)
+    rhs.add_edge(1, 3)
+
+    return Rule('Move unlocks 3ca', lhs, rhs)
+
+def move_unlocks_3cb():
+    lhs = nx.DiGraph()
+    lhs.add_node(5, value='*', mark=5)
+    lhs.add_node(0, value='*', mark=0)
+    lhs.add_node(1, value='l', mark=1)
+    lhs.add_node(2, value='l', mark=2)
+    lhs.add_node(3, value='*', mark=3)
+    lhs.add_node(4, value='*', mark=4)
+    lhs.add_edge(5, 0)
+    lhs.add_edge(0, 1, value='u')
+    lhs.add_edge(0, 2)
+    lhs.add_edge(1, 2, value='u')
+    lhs.add_edge(2, 3)
+    lhs.add_edge(1, 4)
+
+    rhs = nx.DiGraph()
+    rhs.add_node(5, value='*', mark=5)
+    rhs.add_node(0, value='*', mark=0)
+    rhs.add_node(1, value='l', mark=1)
+    rhs.add_node(2, value='l', mark=2)
+    rhs.add_node(3, value='*', mark=3)
+    rhs.add_node(4, value='*', mark=4)
+    rhs.add_edge(5, 0)
+    rhs.add_edge(5, 2)
+    rhs.add_edge(0, 1, value='u')
+    rhs.add_edge(0, 2, value='u')
+    rhs.add_edge(2, 3)
+    rhs.add_edge(1, 4)
+
+    return Rule('Move unlocks 3cb', lhs, rhs)
 
 def move_unlocks_grammar_23():
     rules = [
         (move_unlocks_2(),  1),
         (move_unlocks_2b(), 1),
+        (move_unlocks_2c(), 1),
 #        (move_unlocks_3(),  1),
-        (move_unlocks_3b(), 1),
-        (move_unlocks_3c(), 1),
-        (move_unlocks_3d(), 1),
+        (move_unlocks_3aa(),  1),
+        (move_unlocks_3ab(),  2),
+        (move_unlocks_3ba(),  1),
+        (move_unlocks_3bb(),  2),
+        (move_unlocks_3ca(),  1),
+        (move_unlocks_3cb(),  2),
     ]
 
     return RandomGrammar(rules)
