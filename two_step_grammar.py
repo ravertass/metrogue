@@ -6,16 +6,12 @@ import graphviz
 from graph import *
 
 def main():
-    g = nx.DiGraph()
+    g = nx.DiGraph(name='2-step-graph')
     g.add_node(0, value='S')
     render_pdf(g)
 
     random_set(g)
     locks_and_keys(g)
-
-i = itertools.count(0)
-def render_pdf(g):
-    render(g, "cool_graph_{0}".format(str(i.next()).zfill(2)))
 
 ###############################################################
 #                 Step 1: Create a random set                 #
@@ -23,19 +19,15 @@ def render_pdf(g):
 
 def random_set(g):
     start_rule().apply(g)
-    render_pdf(g)
 
     grow_rule = grow()
-    for _ in range(0,11):
+    for _ in range(0,5):
         grow_rule.apply(g)
-    render_pdf(g)
 
     lock_goal().apply(g)
-    render_pdf(g)
 
     while random_task_grammar().is_applicable(g):
         random_task_grammar().expand(g)
-    render_pdf(g)
 
 def start_rule():
     lhs = nx.DiGraph()
@@ -130,21 +122,21 @@ def locks_and_keys(g):
     lock_door_rule = lock_door()
     while lock_door_rule.is_applicable(g):
         lock_door_rule.apply(g)
-    render_pdf(g)
+    #render_pdf(g)
 
     remove_unnecessary_locks_rule = remove_unnecessary_locks()
     while remove_unnecessary_locks_rule.is_applicable(g):
         remove_unnecessary_locks_rule.apply(g)
-    render_pdf(g)
+    #render_pdf(g)
 
     move_unlocks_grammar_23_grammar = move_unlocks_grammar_23()
     while move_unlocks_grammar_23_grammar.is_applicable(g):
         move_unlocks_grammar_23_grammar.expand(g)
-    render_pdf(g)
+    #render_pdf(g)
 
     while remove_unnecessary_locks_rule.is_applicable(g):
         remove_unnecessary_locks_rule.apply(g)
-    render_pdf(g)
+    #render_pdf(g)
 
 #    while move_unlocks_grammar_01().is_applicable(g):
 #        move_unlocks_grammar_01().expand(g)

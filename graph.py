@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/lhsython2
 
 import os, errno
 import random
@@ -7,6 +7,7 @@ import networkx.algorithms.isomorphism as iso
 import graphviz
 import itertools
 
+STEP_DIR = 'steps'
 RULE_DIR = 'rules'
 
 class RandomGrammar(object):
@@ -45,12 +46,15 @@ class RandomGrammar(object):
         return None
 
 class Rule(object):
+    _step_counter = itertools.count(0)
+
     def __init__(self, name, lhs, rhs, render=True):
         self.name = name
         self._lhs = lhs
         self._rhs = rhs
 
-        if render:
+        self._should_render = render
+        if self._should_render:
             self._render_rule()
 
     def is_applicable(self, graph):
@@ -94,6 +98,9 @@ class Rule(object):
 
         self._add_edges(graph, new_nodes)
 
+        if self._should_render:
+            self._render_step(graph, new_nodes.values())
+
     def _marked_nodes(self, graph):
         marked_nodes = {}
         matcher = self._matcher(graph)
@@ -131,13 +138,25 @@ class Rule(object):
 
         rhs_dot = pydot_graph(self._rhs, unique=True)
 
-        dot = graphviz.Digraph()
+        dot = graphviz.Digraph(format='png')
         dot.subgraph(lhs_dot)
         dot.subgraph(rhs_dot)
         dot.graph_attr['label'] = self.name
 
         file_name = self.name.lower().replace(' ', '_')
         dot.render(os.path.join(RULE_DIR, file_name), cleanup=True)
+
+    def _render_step(self, graph, new_nodes):
+        if not os.path.exists(STEP_DIR):
+            create_dir(STEP_DIR)
+
+        dot = pydot_graph(graph, format='png', nodes_to_mark=new_nodes)
+        dot.graph_attr['label'] = self.name
+
+        i = self.__class__._step_counter.next()
+        i_str = str(i).zfill(3)
+        file_name = '{0}_{1}'.format(graph.graph['name'], i_str)
+        dot.render(os.path.join(STEP_DIR, file_name), cleanup=True)
 
 def create_dir(directory):
     try:
@@ -166,18 +185,27 @@ def add_node(graph, value, mark=None):
 
     return n
 
-i = itertools.count(0)
-def pydot_graph(nx_graph, unique=False):
-    suffix = str(i.next()) if unique else ''
+node_i = itertools.count(0)
+def pydot_graph(nx_graph, format='pdf', nodes_to_mark=None, unique=False):
+    if nodes_to_mark is None:
+        nodes_to_mark = []
 
-    dot_graph = graphviz.Digraph()
+    suffix = str(node_i.next()) if unique else ''
+
+    dot_graph = graphviz.Digraph(format=format)
     dot_graph.graph_attr['rankdir'] = 'LR'
     dot_graph.node_attr['fontname'] = 'Monospace'
 
     for node, node_attrs in nx_graph.nodes(data=True):
         mark = node_attrs.get('mark')
         mark_prefix = str(mark) + ' : ' if mark is not None else ''
-        dot_graph.node(str(node) + suffix, mark_prefix + str(node_attrs.get('value')))
+
+        style = ''
+        if node in nodes_to_mark:
+            style = 'filled'
+
+        label = str(node) + suffix
+        dot_graph.node(label, mark_prefix + str(node_attrs.get('value')), style=style)
 
     for node, succ, value in nx_graph.edges(data='value'):
         if value is not None and value == 'u':
@@ -190,4 +218,8 @@ def pydot_graph(nx_graph, unique=False):
 
 def render(nx_graph, file_name):
     pydot_graph(nx_graph).render(file_name, cleanup=True)
+
+render_i = itertools.count(0)
+def render_pdf(g):
+    render(g, "{0}_{1}".format(g.graph.get('name'), str(render_i.next()).zfill(2)))
 
