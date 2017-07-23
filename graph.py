@@ -1,4 +1,4 @@
-#!/usr/bin/lhsython2
+#!/usr/bin/python2
 
 import os, errno
 import random
